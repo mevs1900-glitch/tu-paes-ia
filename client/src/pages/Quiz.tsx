@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
-import { ChevronLeft, CheckCircle, XCircle, Flame } from "lucide-react";
+import {
+  ChevronLeft,
+  CheckCircle,
+  XCircle,
+  Flame,
+  Loader2,
+  Sparkles,
+  AlertTriangle,
+  Flag,
+} from "lucide-react";
 import { useQuiz } from "@/contexts/QuizContext";
 import {
   getMotivationalMessage,
@@ -8,7 +17,96 @@ import {
 } from "@/lib/motivationalMessages";
 
 // =========================================================================
-// Pantalla de resultados
+// Pantalla: Loading (mientras se genera con IA)
+// =========================================================================
+
+function LoadingScreen({ count }: { count: number }) {
+  const [dots, setDots] = useState("");
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDots((d) => (d.length >= 3 ? "" : d + "."));
+    }, 400);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="w-full h-full bg-background flex flex-col items-center justify-center px-6 py-6">
+      <div className="text-center space-y-6 max-w-sm">
+        <div className="relative w-20 h-20 mx-auto">
+          <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping" />
+          <div className="relative w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center border border-primary/30">
+            <Sparkles className="w-9 h-9 text-primary" />
+          </div>
+        </div>
+
+        <div className="space-y-2">
+          <p
+            className="text-xl font-bold text-foreground"
+            style={{ fontFamily: "Poppins" }}
+          >
+            Generando preguntas{dots}
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            La IA está creando {count} preguntas únicas y personalizadas para ti.
+            Esto puede tardar unos segundos.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground/70">
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          <span>Por favor espera...</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =========================================================================
+// Pantalla: Error
+// =========================================================================
+
+function ErrorScreen({ message }: { message: string }) {
+  const [, setLocation] = useLocation();
+  const { resetQuiz } = useQuiz();
+
+  const handleBack = () => {
+    resetQuiz();
+    setLocation("/home");
+  };
+
+  return (
+    <div className="w-full h-full bg-background flex flex-col items-center justify-center px-6 py-6">
+      <div className="text-center space-y-5 max-w-sm">
+        <div className="w-20 h-20 mx-auto bg-destructive/15 rounded-full flex items-center justify-center border border-destructive/30">
+          <AlertTriangle className="w-9 h-9 text-destructive" />
+        </div>
+
+        <div className="space-y-2">
+          <p
+            className="text-xl font-bold text-foreground"
+            style={{ fontFamily: "Poppins" }}
+          >
+            No pudimos generar preguntas
+          </p>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            {message}
+          </p>
+        </div>
+
+        <button
+          onClick={handleBack}
+          className="w-full h-12 bg-primary hover:bg-primary/90 text-background font-bold text-base rounded-2xl"
+          style={{ fontFamily: "Poppins" }}
+        >
+          Volver al inicio
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// =========================================================================
+// Pantalla: Resultados
 // =========================================================================
 
 function Results() {
@@ -28,7 +126,6 @@ function Results() {
   };
 
   const handleRetry = () => {
-    // Reinicia el quiz con la misma materia, nivel y cantidad solicitada
     resetQuiz();
     setLocation(`/config/${quizState.subject}/${quizState.level}`);
   };
@@ -36,7 +133,7 @@ function Results() {
   return (
     <div className="w-full h-full bg-background flex flex-col px-4 sm:px-6 py-6 overflow-y-auto">
       <div className="flex flex-col items-center w-full max-w-md mx-auto space-y-6">
-        {/* Hero del resultado */}
+        {/* Hero */}
         <div className="text-center space-y-4 pt-4">
           <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center mx-auto animate-in zoom-in duration-500">
             <span
@@ -85,7 +182,7 @@ function Results() {
           </div>
         </div>
 
-        {/* Repaso por pregunta */}
+        {/* Repaso */}
         <div className="w-full space-y-3">
           <h3
             className="text-sm font-bold text-muted-foreground uppercase tracking-wider"
@@ -135,14 +232,14 @@ function Results() {
         <div className="w-full grid grid-cols-2 gap-3 pt-2 pb-4">
           <button
             onClick={handleRetry}
-            className="h-12 bg-card border-2 border-primary text-primary hover:bg-primary/10 font-bold rounded-2xl transition-all duration-200"
+            className="h-12 bg-card border-2 border-primary text-primary hover:bg-primary/10 font-bold rounded-2xl"
             style={{ fontFamily: "Poppins" }}
           >
             Reintentar
           </button>
           <button
             onClick={handleRestart}
-            className="h-12 bg-primary hover:bg-primary/90 text-background font-bold rounded-2xl transition-all duration-200"
+            className="h-12 bg-primary hover:bg-primary/90 text-background font-bold rounded-2xl"
             style={{ fontFamily: "Poppins" }}
           >
             Volver al inicio
@@ -154,15 +251,22 @@ function Results() {
 }
 
 // =========================================================================
-// Pantalla principal del quiz
+// Pantalla principal: Quiz
 // =========================================================================
 
 export default function Quiz() {
   const [, setLocation] = useLocation();
-  const { quizState, questions, answerQuestion, nextQuestion, resetQuiz } =
-    useQuiz();
+  const {
+    quizState,
+    questions,
+    answerQuestion,
+    nextQuestion,
+    resetQuiz,
+    reportCurrentQuestion,
+  } = useQuiz();
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [reportedThis, setReportedThis] = useState(false);
 
   useEffect(() => {
     if (!quizState) {
@@ -170,16 +274,41 @@ export default function Quiz() {
     }
   }, [quizState, setLocation]);
 
-  if (!quizState || questions.length === 0) {
+  // Resetea el estado de la pregunta cuando cambia el índice
+  useEffect(() => {
+    setSelectedAnswer(null);
+    setShowFeedback(false);
+    setReportedThis(false);
+  }, [quizState?.currentQuestionIndex]);
+
+  if (!quizState) {
     return (
       <div className="w-full h-full bg-background flex items-center justify-center">
-        <p className="text-foreground text-xl">Cargando...</p>
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     );
   }
 
-  if (quizState.isFinished) {
+  // Pantallas según phase
+  if (quizState.phase === "loading") {
+    return <LoadingScreen count={quizState.requestedQuestions} />;
+  }
+
+  if (quizState.phase === "error") {
+    return <ErrorScreen message={quizState.errorMessage || "Error inesperado"} />;
+  }
+
+  if (quizState.phase === "finished") {
     return <Results />;
+  }
+
+  // Phase: playing
+  if (questions.length === 0) {
+    return (
+      <div className="w-full h-full bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
   }
 
   const currentQuestion = questions[quizState.currentQuestionIndex];
@@ -204,9 +333,13 @@ export default function Quiz() {
   };
 
   const handleNext = () => {
-    setSelectedAnswer(null);
-    setShowFeedback(false);
     nextQuestion();
+  };
+
+  const handleReport = () => {
+    if (reportedThis) return;
+    reportCurrentQuestion("Usuario reportó pregunta incorrecta");
+    setReportedThis(true);
   };
 
   return (
@@ -214,7 +347,16 @@ export default function Quiz() {
       className="w-full h-full bg-background flex flex-col items-center px-4 sm:px-6 py-6"
       style={{ paddingBottom: "calc(1.5rem + env(safe-area-inset-bottom))" }}
     >
-      {/* Top bar: progreso + racha */}
+      {/* Banner de origen (solo si es manual de respaldo) */}
+      {quizState.source === "manual" && quizState.errorMessage && (
+        <div className="w-full max-w-md mb-3 px-3 py-2 rounded-xl bg-orange-500/10 border border-orange-500/30">
+          <p className="text-xs text-orange-400 text-center">
+            ⚠️ Usando banco de respaldo
+          </p>
+        </div>
+      )}
+
+      {/* Top bar */}
       <div className="w-full space-y-3 mb-4">
         <div className="flex items-center justify-between gap-3">
           <p
@@ -225,7 +367,6 @@ export default function Quiz() {
             {quizState.totalQuestions}
           </p>
 
-          {/* Indicador de racha — clave para motivación TDAH */}
           {quizState.currentStreak > 0 && (
             <div
               className="flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-500/15 border border-orange-500/30 animate-in zoom-in duration-300"
@@ -255,7 +396,7 @@ export default function Quiz() {
       </div>
 
       {/* Botón atrás */}
-      <div className="w-full flex items-center justify-start mb-3">
+      <div className="w-full flex items-center justify-between mb-3">
         <button
           onClick={() => {
             resetQuiz();
@@ -266,11 +407,27 @@ export default function Quiz() {
         >
           <ChevronLeft className="w-6 h-6 text-foreground" />
         </button>
+
+        {/* Botón reportar pregunta (solo cuando ya hay feedback visible) */}
+        {showFeedback && currentQuestion.source === "ai" && (
+          <button
+            onClick={handleReport}
+            disabled={reportedThis}
+            className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-colors flex items-center gap-1.5 ${
+              reportedThis
+                ? "bg-secondary/10 text-secondary cursor-default"
+                : "bg-card border border-border text-muted-foreground hover:text-destructive hover:border-destructive/50"
+            }`}
+            aria-label="Reportar pregunta incorrecta"
+          >
+            <Flag className="w-3 h-3" />
+            {reportedThis ? "Reportada" : "Reportar"}
+          </button>
+        )}
       </div>
 
       {/* Contenido principal */}
       <div className="flex-1 flex flex-col items-center justify-start w-full max-w-md space-y-5 overflow-y-auto">
-        {/* Mensaje motivacional */}
         {motivationalMessage && (
           <p
             className="text-sm sm:text-base font-semibold text-secondary text-center animate-in fade-in duration-500"
@@ -280,7 +437,6 @@ export default function Quiz() {
           </p>
         )}
 
-        {/* Tarjeta con pregunta */}
         <div
           key={currentQuestion.id}
           className="bg-card rounded-2xl border border-border p-4 sm:p-6 space-y-4 w-full animate-in fade-in slide-in-from-right-4 duration-300"
@@ -292,7 +448,6 @@ export default function Quiz() {
             {currentQuestion.text}
           </p>
 
-          {/* Opciones */}
           <div className="space-y-2">
             {currentQuestion.options.map((option, index) => {
               const isCorrectOption =
@@ -332,7 +487,6 @@ export default function Quiz() {
             })}
           </div>
 
-          {/* Feedback */}
           {showFeedback && (
             <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
               <div

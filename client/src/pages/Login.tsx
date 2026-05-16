@@ -60,6 +60,9 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
+    // Maqueta funcional: en Fase 2 se conecta Firebase Auth con Google real.
+    // Por ahora, crea una sesión de invitado para que el flujo de Home pueda
+    // mostrar un usuario y el botón de salir funcione consistentemente.
     loginAsGuest("Invitado Google");
     setLocation("/home");
   };
@@ -74,6 +77,7 @@ export default function Login() {
     }, 3000);
   };
 
+  // Pantalla de recuperación
   if (showRecovery) {
     return (
       <div className="w-full h-full bg-background flex flex-col items-center justify-between px-6 py-6">
@@ -149,6 +153,7 @@ export default function Login() {
     );
   }
 
+  // Pantalla de login/registro principal
   return (
     <div className="w-full min-h-screen bg-background flex flex-col items-center px-6 py-6">
       {/* Header compacto */}
@@ -164,6 +169,7 @@ export default function Login() {
       {/* Formulario centrado */}
       <div className="w-full max-w-md">
         <div className="w-full bg-card rounded-3xl border border-border p-6 space-y-5">
+          {/* Tabs */}
           <div className="flex gap-2">
             <button
               onClick={() => {
@@ -199,6 +205,7 @@ export default function Login() {
             </button>
           </div>
 
+          {/* Mensaje */}
           {message && (
             <div
               className={`p-4 rounded-2xl text-sm font-semibold text-center ${
@@ -211,6 +218,7 @@ export default function Login() {
             </div>
           )}
 
+          {/* Formulario de Login/Registro */}
           <form onSubmit={isLoginMode ? handleLogin : handleRegister} className="space-y-4">
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
