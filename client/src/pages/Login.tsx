@@ -38,6 +38,7 @@ export default function Login() {
               onSuccess={handleSuccess}
               onError={() => {}}
               useOneTap={false}
+              prompt="select_account"
               theme="outline"
               size="large"
               text="signin_with"
